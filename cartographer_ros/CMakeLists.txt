@@ -86,7 +86,7 @@ file(GLOB_RECURSE ALL_TESTS "*_test.cc")
 file(GLOB_RECURSE ALL_EXECUTABLES "*_main.cc")
 list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
 list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
-add_library(${PROJECT_NAME} ${ALL_SRCS})
+add_library(${PROJECT_NAME} ${ALL_SRCS} cartographer_ros/node_grpc_main.cc)
 add_subdirectory("cartographer_ros")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)

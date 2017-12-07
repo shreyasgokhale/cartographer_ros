@@ -36,6 +36,17 @@ install(TARGETS cartographer_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+google_binary(cartographer_node_grpc
+        SRCS
+        node_grpc_main.cc
+        )
+
+install(TARGETS cartographer_node_grpc
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+        )
+
 google_binary(cartographer_offline_node
   SRCS
     offline_node_main.cc

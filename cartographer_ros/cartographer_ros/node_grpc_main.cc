@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 The Cartographer Authors
+ * Copyright 2017 The Cartographer Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "cartographer_grpc/mapping/map_builder_stub.h"
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"
@@ -47,9 +48,12 @@ void Run() {
   std::tie(node_options, trajectory_options) =
       LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
 
-  auto map_builder =
-      cartographer::common::make_unique<cartographer::mapping::MapBuilder>(
-          node_options.map_builder_options);
+  LOG(INFO) << "Before map_builder";
+  auto map_builder = cartographer::common::make_unique<
+      cartographer_grpc::mapping::MapBuilderStub>();
+  LOG(INFO) << "Connecting...";
+  map_builder->Connect();
+  LOG(INFO) << "Connected.";
   Node node(node_options, std::move(map_builder), &tf_buffer);
   if (!FLAGS_map_filename.empty()) {
     node.LoadMap(FLAGS_map_filename);
