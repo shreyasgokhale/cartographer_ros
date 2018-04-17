@@ -178,8 +178,11 @@ void MapBuilderBridge::HandleSubmapQuery(
     return;
   }
 
-  CHECK(response_proto.textures_size() > 0)
-      << "empty textures given for submap: " << submap_id;
+  //CHECK(response_proto.textures_size() > 0)
+  //    << "empty textures given for submap: " << submap_id;
+  if (response_proto.textures_size() == 0) {
+    return;
+  }
 
   response.submap_version = response_proto.submap_version();
   for (const auto& texture_proto : response_proto.textures()) {
