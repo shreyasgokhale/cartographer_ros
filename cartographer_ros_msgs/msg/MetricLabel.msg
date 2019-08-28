@@ -1,4 +1,4 @@
-# Copyright 2016 The Cartographer Authors
+# 2018 The Cartographer Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,21 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-string tracking_frame
-string published_frame
-string odom_frame
-bool provide_odom_frame
-bool use_odometry
-bool use_nav_sat
-int32 num_laser_scans
-int32 num_multi_echo_laser_scans
-int32 num_subdivisions_per_laser_scan
-int32 num_point_clouds
-float64 rangefinder_sampling_ratio
-float64 odometry_sampling_ratio
-float64 fixed_frame_pose_sampling_ratio
-float64 imu_sampling_ratio
-
-# This is a binary-encoded
-# 'cartographer.mapping.proto.TrajectoryBuilderOptions' proto.
-string trajectory_builder_options_proto
+string key
+string value

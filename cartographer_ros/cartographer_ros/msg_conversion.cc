@@ -21,6 +21,7 @@
 #include "cartographer/common/math.h"
 #include "cartographer/common/port.h"
 #include "cartographer/common/time.h"
+#include "cartographer/io/submap_painter.h"
 #include "cartographer/transform/proto/transform.pb.h"
 #include "cartographer/transform/transform.h"
 #include "cartographer_ros/time_conversion.h"
@@ -30,6 +31,10 @@
 #include "geometry_msgs/TransformStamped.h"
 #include "geometry_msgs/Vector3.h"
 #include "glog/logging.h"
+#include "nav_msgs/OccupancyGrid.h"
+#include "pcl/point_cloud.h"
+#include "pcl/point_types.h"
+#include "pcl_conversions/pcl_conversions.h"
 #include "ros/ros.h"
 #include "ros/serialization.h"
 #include "sensor_msgs/Imu.h"
@@ -37,8 +42,35 @@
 #include "sensor_msgs/MultiEchoLaserScan.h"
 #include "sensor_msgs/PointCloud2.h"
 
-namespace cartographer_ros {
+namespace {
 
+// Sizes of PCL point types have to be 4n floats for alignment, as described in
+// http://pointclouds.org/documentation/tutorials/adding_custom_ptype.php
+struct PointXYZT {
+  float x;
+  float y;
+  float z;
+  float time;
+};
+
+struct PointXYZIT {
+  PCL_ADD_POINT4D;
+  float intensity;
+  float time;
+  float unused_padding[2];
+};
+
+}  // namespace
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(
+    PointXYZT, (float, x, x)(float, y, y)(float, z, z)(float, time, time))
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(
+    PointXYZIT,
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity,
+                                            intensity)(float, time, time))
+
+namespace cartographer_ros {
 namespace {
 
 // The ros::sensor_msgs::PointCloud2 binary data contains 4 floats for each
@@ -46,8 +78,12 @@ namespace {
 // properly.
 constexpr float kPointCloudComponentFourMagic = 1.;
 
+using ::cartographer::sensor::LandmarkData;
+using ::cartographer::sensor::LandmarkObservation;
 using ::cartographer::sensor::PointCloudWithIntensities;
 using ::cartographer::transform::Rigid3d;
+using ::cartographer_ros_msgs::LandmarkEntry;
+using ::cartographer_ros_msgs::LandmarkList;
 
 sensor_msgs::PointCloud2 PreparePointCloud2Message(const int64_t timestamp,
                                                    const std::string& frame_id,
@@ -111,9 +147,9 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
       const float first_echo = GetFirstEcho(echoes);
       if (msg.range_min <= first_echo && first_echo <= msg.range_max) {
         const Eigen::AngleAxisf rotation(angle, Eigen::Vector3f::UnitZ());
-        Eigen::Vector4f point;
-        point << rotation * (first_echo * Eigen::Vector3f::UnitX()),
-            i * msg.time_increment;
+        const cartographer::sensor::TimedRangefinderPoint point{
+            rotation * (first_echo * Eigen::Vector3f::UnitX()),
+            i * msg.time_increment};
         point_cloud.points.push_back(point);
         if (msg.intensities.size() > 0) {
           CHECK_EQ(msg.intensities.size(), msg.ranges.size());
@@ -129,10 +165,10 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
   }
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
-    const double duration = point_cloud.points.back()[3];
+    const double duration = point_cloud.points.back().time;
     timestamp += cartographer::common::FromSeconds(duration);
     for (auto& point : point_cloud.points) {
-      point[3] -= duration;
+      point.time -= duration;
     }
   }
   return std::make_tuple(point_cloud, timestamp);
@@ -155,10 +191,10 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
     const ::cartographer::sensor::TimedPointCloud& point_cloud) {
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
   ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
-  for (const auto& point : point_cloud) {
-    stream.next(point.x());
-    stream.next(point.y());
-    stream.next(point.z());
+  for (const cartographer::sensor::TimedRangefinderPoint& point : point_cloud) {
+    stream.next(point.position.x());
+    stream.next(point.position.y());
+    stream.next(point.position.z());
     stream.next(kPointCloudComponentFourMagic);
   }
   return msg;
@@ -178,29 +214,79 @@ ToPointCloudWithIntensities(const sensor_msgs::MultiEchoLaserScan& msg) {
 
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
-ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& message) {
+ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
   PointCloudWithIntensities point_cloud;
   // We check for intensity field here to avoid run-time warnings if we pass in
   // a PointCloud2 without intensity.
-  if (PointCloud2HasField(message, "intensity")) {
-    pcl::PointCloud<pcl::PointXYZI> pcl_point_cloud;
-    pcl::fromROSMsg(message, pcl_point_cloud);
-    for (const auto& point : pcl_point_cloud) {
-      point_cloud.points.emplace_back(point.x, point.y, point.z, 0.f);
-      point_cloud.intensities.push_back(point.intensity);
+  if (PointCloud2HasField(msg, "intensity")) {
+    if (PointCloud2HasField(msg, "time")) {
+      pcl::PointCloud<PointXYZIT> pcl_point_cloud;
+      pcl::fromROSMsg(msg, pcl_point_cloud);
+      point_cloud.points.reserve(pcl_point_cloud.size());
+      point_cloud.intensities.reserve(pcl_point_cloud.size());
+      for (const auto& point : pcl_point_cloud) {
+        point_cloud.points.push_back(
+            {Eigen::Vector3f{point.x, point.y, point.z}, point.time});
+        point_cloud.intensities.push_back(point.intensity);
+      }
+    } else {
+      pcl::PointCloud<pcl::PointXYZI> pcl_point_cloud;
+      pcl::fromROSMsg(msg, pcl_point_cloud);
+      point_cloud.points.reserve(pcl_point_cloud.size());
+      point_cloud.intensities.reserve(pcl_point_cloud.size());
+      for (const auto& point : pcl_point_cloud) {
+        point_cloud.points.push_back(
+            {Eigen::Vector3f{point.x, point.y, point.z}, 0.f});
+        point_cloud.intensities.push_back(point.intensity);
+      }
     }
   } else {
-    pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
-    pcl::fromROSMsg(message, pcl_point_cloud);
-
-    // If we don't have an intensity field, just copy XYZ and fill in
-    // 1.0.
-    for (const auto& point : pcl_point_cloud) {
-      point_cloud.points.emplace_back(point.x, point.y, point.z, 0.f);
-      point_cloud.intensities.push_back(1.0);
+    // If we don't have an intensity field, just copy XYZ and fill in 1.0f.
+    if (PointCloud2HasField(msg, "time")) {
+      pcl::PointCloud<PointXYZT> pcl_point_cloud;
+      pcl::fromROSMsg(msg, pcl_point_cloud);
+      point_cloud.points.reserve(pcl_point_cloud.size());
+      point_cloud.intensities.reserve(pcl_point_cloud.size());
+      for (const auto& point : pcl_point_cloud) {
+        point_cloud.points.push_back(
+            {Eigen::Vector3f{point.x, point.y, point.z}, point.time});
+        point_cloud.intensities.push_back(1.0f);
+      }
+    } else {
+      pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
+      pcl::fromROSMsg(msg, pcl_point_cloud);
+      point_cloud.points.reserve(pcl_point_cloud.size());
+      point_cloud.intensities.reserve(pcl_point_cloud.size());
+      for (const auto& point : pcl_point_cloud) {
+        point_cloud.points.push_back(
+            {Eigen::Vector3f{point.x, point.y, point.z}, 0.f});
+        point_cloud.intensities.push_back(1.0f);
+      }
     }
   }
-  return std::make_tuple(point_cloud, FromRos(message.header.stamp));
+  ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
+  if (!point_cloud.points.empty()) {
+    const double duration = point_cloud.points.back().time;
+    timestamp += cartographer::common::FromSeconds(duration);
+    for (auto& point : point_cloud.points) {
+      point.time -= duration;
+      CHECK_LE(point.time, 0.f)
+          << "Encountered a point with a larger stamp than "
+             "the last point in the cloud.";
+    }
+  }
+  return std::make_tuple(point_cloud, timestamp);
+}
+
+LandmarkData ToLandmarkData(const LandmarkList& landmark_list) {
+  LandmarkData landmark_data;
+  landmark_data.time = FromRos(landmark_list.header.stamp);
+  for (const LandmarkEntry& entry : landmark_list.landmarks) {
+    landmark_data.landmark_observations.push_back(
+        {entry.id, ToRigid3d(entry.tracking_from_landmark_transform),
+         entry.translation_weight, entry.rotation_weight});
+  }
+  return landmark_data;
 }
 
 Rigid3d ToRigid3d(const geometry_msgs::TransformStamped& transform) {
@@ -282,6 +368,53 @@ cartographer::transform::Rigid3d ComputeLocalFrameFromLatLong(
       Eigen::AngleAxisd(cartographer::common::DegToRad(-longitude),
                         Eigen::Vector3d::UnitZ());
   return cartographer::transform::Rigid3d(rotation * -translation, rotation);
+}
+
+std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
+    const cartographer::io::PaintSubmapSlicesResult& painted_slices,
+    const double resolution, const std::string& frame_id,
+    const ros::Time& time) {
+  auto occupancy_grid = absl::make_unique<nav_msgs::OccupancyGrid>();
+
+  const int width = cairo_image_surface_get_width(painted_slices.surface.get());
+  const int height =
+      cairo_image_surface_get_height(painted_slices.surface.get());
+
+  occupancy_grid->header.stamp = time;
+  occupancy_grid->header.frame_id = frame_id;
+  occupancy_grid->info.map_load_time = time;
+  occupancy_grid->info.resolution = resolution;
+  occupancy_grid->info.width = width;
+  occupancy_grid->info.height = height;
+  occupancy_grid->info.origin.position.x =
+      -painted_slices.origin.x() * resolution;
+  occupancy_grid->info.origin.position.y =
+      (-height + painted_slices.origin.y()) * resolution;
+  occupancy_grid->info.origin.position.z = 0.;
+  occupancy_grid->info.origin.orientation.w = 1.;
+  occupancy_grid->info.origin.orientation.x = 0.;
+  occupancy_grid->info.origin.orientation.y = 0.;
+  occupancy_grid->info.origin.orientation.z = 0.;
+
+  const uint32_t* pixel_data = reinterpret_cast<uint32_t*>(
+      cairo_image_surface_get_data(painted_slices.surface.get()));
+  occupancy_grid->data.reserve(width * height);
+  for (int y = height - 1; y >= 0; --y) {
+    for (int x = 0; x < width; ++x) {
+      const uint32_t packed = pixel_data[y * width + x];
+      const unsigned char color = packed >> 16;
+      const unsigned char observed = packed >> 8;
+      const int value =
+          observed == 0
+              ? -1
+              : ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
+      CHECK_LE(-1, value);
+      CHECK_GE(100, value);
+      occupancy_grid->data.push_back(value);
+    }
+  }
+
+  return occupancy_grid;
 }
 
 }  // namespace cartographer_ros

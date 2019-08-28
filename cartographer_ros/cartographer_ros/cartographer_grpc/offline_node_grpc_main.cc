@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-#include "cartographer_grpc/mapping/map_builder_stub.h"
+#include "cartographer/cloud/client/map_builder_stub.h"
 #include "cartographer_ros/offline_node.h"
 #include "cartographer_ros/ros_log_sink.h"
+#include "gflags/gflags.h"
 #include "ros/ros.h"
 
 DEFINE_string(server_address, "localhost:50051",
               "gRPC server address to "
               "stream the sensor data to.");
+DEFINE_string(client_id, "",
+              "Cartographer client ID to use when connecting to the server.");
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
+
+  CHECK(!FLAGS_client_id.empty()) << "-client_id is missing.";
 
   ::ros::init(argc, argv, "cartographer_grpc_offline_node");
   ::ros::start();
@@ -34,8 +39,8 @@ int main(int argc, char** argv) {
 
   const cartographer_ros::MapBuilderFactory map_builder_factory =
       [](const ::cartographer::mapping::proto::MapBuilderOptions&) {
-        return ::cartographer::common::make_unique<
-            ::cartographer_grpc::mapping::MapBuilderStub>(FLAGS_server_address);
+        return absl::make_unique< ::cartographer::cloud::MapBuilderStub>(
+            FLAGS_server_address, FLAGS_client_id);
       };
 
   cartographer_ros::RunOfflineNode(map_builder_factory);
