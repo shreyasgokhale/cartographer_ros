@@ -152,4 +152,19 @@ if (${BUILD_GRPC})
     ../scripts/cartographer_grpc_server.sh
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
+
+  if(${BUILD_DECEN})
+    google_binary(cartographer_grpc_decentralized_node
+      SRCS
+        cartographer_grpc_decentralized/node_grpc_decentralized_main.cc
+    )
+  
+  install(TARGETS cartographer_grpc_decentralized_node
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+
+  endif()
+
 endif()

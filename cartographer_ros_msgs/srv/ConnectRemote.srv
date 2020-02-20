@@ -1,0 +1,5 @@
+# Request Cartographer gRPC to add trajectory from remote client
+
+string address
+---
+cartographer_ros_msgs/StatusResponse status
