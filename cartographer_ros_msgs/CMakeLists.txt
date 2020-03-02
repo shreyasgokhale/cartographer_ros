@@ -44,7 +44,6 @@ add_message_files(
 add_service_files(
   DIRECTORY srv
   FILES
-    ConnectRemote.srv
     FinishTrajectory.srv
     GetTrajectoryStates.srv
     ReadMetrics.srv
@@ -52,6 +51,7 @@ add_service_files(
     SubmapQuery.srv
     TrajectoryQuery.srv
     WriteState.srv
+    GetRemoteState.srv
 )
 
 generate_messages(

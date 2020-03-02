@@ -15,7 +15,7 @@
  */
 
 #include "absl/memory/memory.h"
-#include "cartographer/cloud/client/map_builder_stub.h"
+#include "cartographer/cloud/client/map_builder_stub_decentralized.h"
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"

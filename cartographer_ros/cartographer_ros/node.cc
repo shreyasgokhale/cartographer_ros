@@ -128,6 +128,10 @@ Node::Node(
   service_servers_.push_back(node_handle_.advertiseService(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
+  service_servers_.push_back(node_handle_.advertiseService(
+          kGetRemoteStateServiceName, &Node::HandleGetRemoteState, this));
+
+
   scan_matched_point_cloud_publisher_ =
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
@@ -701,6 +705,30 @@ bool Node::HandleReadMetrics(
   return true;
 }
 
+
+bool Node::HandleGetRemoteState(cartographer_ros_msgs::GetRemoteState::Request &request,
+                                cartographer_ros_msgs::GetRemoteState::Response &response) {
+    absl::MutexLock lock(&mutex_);
+    if (map_builder_bridge_.LoadStateFromRemote(request.remote_address,false)) {
+        response.status.code = cartographer_ros_msgs::StatusCode::OK;
+        response.status.message =
+                absl::StrCat("Acquiring state from remote server '", request.remote_address, "'.");
+    } else {
+        response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
+        response.status.message =
+                absl::StrCat("Failed to connect to '", request.remote_address, "'.");
+    }
+    return true;
+}
+
+
+
+
+
+
+
+
+
 void Node::FinishAllTrajectories() {
   absl::MutexLock lock(&mutex_);
   for (const auto& entry : map_builder_bridge_.GetTrajectoryStates()) {
@@ -836,6 +864,15 @@ void Node::LoadState(const std::string& state_filename,
   absl::MutexLock lock(&mutex_);
   map_builder_bridge_.LoadState(state_filename, load_frozen_state);
 }
+
+void Node::LoadStateFromRemote(const std::string& remote_address,
+                     const bool load_frozen_state) {
+    absl::MutexLock lock(&mutex_);
+    map_builder_bridge_.LoadStateFromRemote(remote_address, load_frozen_state);
+}
+
+
+
 
 void Node::MaybeWarnAboutTopicMismatch(
     const ::ros::WallTimerEvent& unused_timer_event) {

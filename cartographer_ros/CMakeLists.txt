@@ -47,6 +47,7 @@ find_package(PCL REQUIRED COMPONENTS common)
 find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
+
 google_initialize_cartographer_project()
 google_enable_testing()
 
@@ -92,8 +93,7 @@ catkin_package(
 file(GLOB_RECURSE ALL_SRCS "cartographer_ros/*.cc" "cartographer_ros/*.h")
 file(GLOB_RECURSE ALL_TESTS "cartographer_ros/*_test.cc")
 file(GLOB_RECURSE ALL_EXECUTABLES "cartographer_ros/*_main.cc")
-file(GLOB_RECURSE ALL_GRPC_FILES "cartographer_ros/cartographer_grpc/*")
-file(GLOB_RECURSE ALL_GRPC_FILES "cartographer_ros/cartographer_grpc_decentralized/*")
+file(GLOB_RECURSE ALL_GRPC_FILES "cartographer_ros/cartographer_grpc/*" "cartographer_ros/cartographer_grpc_decentralized/*")
 list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
 list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
 if (NOT ${BUILD_GRPC})

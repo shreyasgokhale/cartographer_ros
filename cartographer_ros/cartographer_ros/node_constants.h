@@ -46,6 +46,10 @@ constexpr char kConstraintListTopic[] = "constraint_list";
 constexpr double kConstraintPublishPeriodSec = 0.5;
 constexpr double kTopicMismatchCheckDelaySec = 3.0;
 
+constexpr char kGetRemoteStateServiceName[] = "get_remote_state";
+
+
+
 constexpr int kInfiniteSubscriberQueueSize = 0;
 constexpr int kLatestOnlyPublisherQueueSize = 1;
 

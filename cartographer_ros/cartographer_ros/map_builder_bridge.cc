@@ -105,19 +105,34 @@ MapBuilderBridge::MapBuilderBridge(
       map_builder_(std::move(map_builder)),
       tf_buffer_(tf_buffer) {}
 
-void MapBuilderBridge::LoadState(const std::string& state_filename,
-                                 bool load_frozen_state) {
-  // Check if suffix of the state file is ".pbstream".
-  const std::string suffix = ".pbstream";
-  CHECK_EQ(state_filename.substr(
-               std::max<int>(state_filename.size() - suffix.size(), 0)),
-           suffix)
-      << "The file containing the state to be loaded must be a "
-         ".pbstream file.";
-  LOG(INFO) << "Loading saved state '" << state_filename << "'...";
-  cartographer::io::ProtoStreamReader stream(state_filename);
-  map_builder_->LoadState(&stream, load_frozen_state);
-}
+
+    // Add state directly from remote gRPC address
+
+    bool MapBuilderBridge::LoadStateFromRemote(const std::string& remote_address,
+                                               bool load_frozen_state) {
+        // Check if we are using gRPC
+
+        LOG(INFO) << "Invalid Rosservice Call, Decentralized GRPC flag false '" ;
+        return false;
+
+    }
+
+
+    void MapBuilderBridge::LoadState(const std::string& state_filename,
+                                     bool load_frozen_state) {
+        // Check if suffix of the state file is ".pbstream".
+        const std::string suffix = ".pbstream";
+        CHECK_EQ(state_filename.substr(
+                std::max<int>(state_filename.size() - suffix.size(), 0)),
+                 suffix)
+            << "The file containing the state to be loaded must be a "
+               ".pbstream file.";
+        LOG(INFO) << "Loading saved state '" << state_filename << "'...";
+        cartographer::io::ProtoStreamReader stream(state_filename);
+        map_builder_->LoadState(&stream, load_frozen_state);
+    }
+
+
 
 int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
