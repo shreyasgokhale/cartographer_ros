@@ -112,8 +112,27 @@ MapBuilderBridge::MapBuilderBridge(
                                                bool load_frozen_state) {
         // Check if we are using gRPC
 
+
         LOG(INFO) << "Invalid Rosservice Call, Decentralized GRPC flag false '" ;
-        return false;
+
+        // get stream here
+        LOG(INFO) << "Using pbstream for debug '" ;
+
+        // For now, testing it for pbstream
+        const std::string suffix = ".pbstream";
+        CHECK_EQ(remote_address.substr(
+                std::max<int>(remote_address.size() - suffix.size(), 0)),
+                 suffix)
+            << "The file containing the state to be loaded must be a "
+               ".pbstream file.";
+        LOG(INFO) << "Loading saved state '" << remote_address << "'...";
+
+
+        cartographer::io::ProtoStreamReader stream(remote_address);
+
+        map_builder_->LoadState(&stream, load_frozen_state);
+
+        return true;
 
     }
 

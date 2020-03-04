@@ -865,13 +865,6 @@ void Node::LoadState(const std::string& state_filename,
   map_builder_bridge_.LoadState(state_filename, load_frozen_state);
 }
 
-void Node::LoadStateFromRemote(const std::string& remote_address,
-                     const bool load_frozen_state) {
-    absl::MutexLock lock(&mutex_);
-    map_builder_bridge_.LoadStateFromRemote(remote_address, load_frozen_state);
-}
-
-
 
 
 void Node::MaybeWarnAboutTopicMismatch(
