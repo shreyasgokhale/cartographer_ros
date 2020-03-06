@@ -113,24 +113,35 @@ MapBuilderBridge::MapBuilderBridge(
         // Check if we are using gRPC
 
 
-        LOG(INFO) << "Invalid Rosservice Call, Decentralized GRPC flag false '" ;
+        LOG(INFO) << "Received LoadState  Call'" ;
+        bool include_unfinished_submaps = false;
+        std::string filename = "autoremoteadd.pbstream";
+        map_builder_->SerializeStateToFile(include_unfinished_submaps,
+                                           filename);
+
 
         // get stream here
-        LOG(INFO) << "Using pbstream for debug '" ;
-
-        // For now, testing it for pbstream
+//        LOG(INFO) << "Using pbstream for debug '" ;
+//
+//        // For now, testing it for pbstream
+//        const std::string suffix = ".pbstream";
+//        CHECK_EQ(remote_address.substr(
+//                std::max<int>(remote_address.size() - suffix.size(), 0)),
+//                 suffix)
+//            << "The file containing the state to be loaded must be a "
+//               ".pbstream file.";
+//        LOG(INFO) << "Loading saved state '" << remote_address << "'...";
+//
         const std::string suffix = ".pbstream";
-        CHECK_EQ(remote_address.substr(
-                std::max<int>(remote_address.size() - suffix.size(), 0)),
+        CHECK_EQ(filename.substr(
+                std::max<int>(filename.size() - suffix.size(), 0)),
                  suffix)
             << "The file containing the state to be loaded must be a "
                ".pbstream file.";
-        LOG(INFO) << "Loading saved state '" << remote_address << "'...";
+        LOG(INFO) << "Loading saved state '" << filename << "'...";
+        cartographer::io::ProtoStreamReader stream(filename);
 
-
-        cartographer::io::ProtoStreamReader stream(remote_address);
-
-        map_builder_->LoadState(&stream, load_frozen_state);
+        map_builder_->GetRemoteState(&stream, load_frozen_state, remote_address);
 
         return true;
 
