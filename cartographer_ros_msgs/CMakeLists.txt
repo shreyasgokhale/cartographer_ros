@@ -51,7 +51,7 @@ add_service_files(
     SubmapQuery.srv
     TrajectoryQuery.srv
     WriteState.srv
-    GetRemoteState.srv
+    SendStateRemote.srv
 )
 
 generate_messages(

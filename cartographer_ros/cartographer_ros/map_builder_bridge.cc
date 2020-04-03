@@ -108,12 +108,12 @@ MapBuilderBridge::MapBuilderBridge(
 
     // Add state directly from remote gRPC address
 
-    bool MapBuilderBridge::LoadStateFromRemote(const std::string& remote_address,
-                                               bool load_frozen_state) {
+    bool MapBuilderBridge::SendStateToRemote(const std::string& remote_address,
+                                             bool load_frozen_state) {
         // Check if we are using gRPC
 
 
-        LOG(INFO) << "Received LoadState  Call'" ;
+        LOG(INFO) << "Received SendState" ;
         bool include_unfinished_submaps = false;
         std::string filename = "autoremoteadd.pbstream";
         map_builder_->SerializeStateToFile(include_unfinished_submaps,
@@ -141,7 +141,8 @@ MapBuilderBridge::MapBuilderBridge(
         LOG(INFO) << "Loading saved state '" << filename << "'...";
         cartographer::io::ProtoStreamReader stream(filename);
 
-        map_builder_->GetRemoteState(&stream, load_frozen_state, remote_address);
+
+        map_builder_->SendStateRemote(&stream, load_frozen_state, remote_address);
 
         return true;
 

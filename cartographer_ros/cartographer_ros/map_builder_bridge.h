@@ -73,7 +73,7 @@ class MapBuilderBridge {
   MapBuilderBridge& operator=(const MapBuilderBridge&) = delete;
 
   void LoadState(const std::string& state_filename, bool load_frozen_state);
-  bool LoadStateFromRemote(const std::string &remote_address, bool load_frozen_state);
+  bool SendStateToRemote(const std::string &remote_address, bool load_frozen_state);
 
 
     int AddTrajectory(

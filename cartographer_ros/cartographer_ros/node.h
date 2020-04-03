@@ -42,7 +42,7 @@
 #include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
 #include "cartographer_ros_msgs/WriteState.h"
-#include "cartographer_ros_msgs/GetRemoteState.h"
+#include "cartographer_ros_msgs/SendStateRemote.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
@@ -144,8 +144,8 @@ class Node {
       cartographer_ros_msgs::FinishTrajectory::Response& response);
   bool HandleWriteState(cartographer_ros_msgs::WriteState::Request& request,
                         cartographer_ros_msgs::WriteState::Response& response);
-  bool HandleGetRemoteState(cartographer_ros_msgs::GetRemoteState::Request& request,
-                          cartographer_ros_msgs::GetRemoteState::Response& response);
+  bool HandleSendStateRemote(cartographer_ros_msgs::SendStateRemote::Request &request,
+                             cartographer_ros_msgs::SendStateRemote::Response &response);
   bool HandleGetTrajectoryStates(
       ::cartographer_ros_msgs::GetTrajectoryStates::Request& request,
       ::cartographer_ros_msgs::GetTrajectoryStates::Response& response);

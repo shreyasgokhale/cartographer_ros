@@ -129,7 +129,7 @@ Node::Node(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
   service_servers_.push_back(node_handle_.advertiseService(
-          kGetRemoteStateServiceName, &Node::HandleGetRemoteState, this));
+          kSendStateRemote, &Node::HandleSendStateRemote, this));
 
 
   scan_matched_point_cloud_publisher_ =
@@ -706,17 +706,17 @@ bool Node::HandleReadMetrics(
 }
 
 
-bool Node::HandleGetRemoteState(cartographer_ros_msgs::GetRemoteState::Request &request,
-                                cartographer_ros_msgs::GetRemoteState::Response &response) {
+bool Node::HandleSendStateRemote(cartographer_ros_msgs::SendStateRemote::Request &request,
+                                 cartographer_ros_msgs::SendStateRemote::Response &response) {
     absl::MutexLock lock(&mutex_);
-    if (map_builder_bridge_.LoadStateFromRemote(request.remote_address,false)) {
+    if (map_builder_bridge_.SendStateToRemote(request.remote_address, false)) {
         response.status.code = cartographer_ros_msgs::StatusCode::OK;
         response.status.message =
-                absl::StrCat("Acquiring state from remote server '", request.remote_address, "'.");
+                absl::StrCat("Sending Current state to remote server '", request.remote_address, "'.");
     } else {
         response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
         response.status.message =
-                absl::StrCat("Failed to connect to '", request.remote_address, "'.");
+                absl::StrCat("Failed sending state '", request.remote_address, "'.");
     }
     return true;
 }
