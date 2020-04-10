@@ -110,40 +110,27 @@ MapBuilderBridge::MapBuilderBridge(
 
     bool MapBuilderBridge::SendStateToRemote(const std::string& remote_address,
                                              bool load_frozen_state) {
-        // Check if we are using gRPC
-
-
-        LOG(INFO) << "Received SendState" ;
+        std::map<int, int> check;
+        LOG(INFO) << "Received SendState to Remote Address: " << remote_address ;
         bool include_unfinished_submaps = false;
         std::string filename = "autoremoteadd.pbstream";
         map_builder_->SerializeStateToFile(include_unfinished_submaps,
                                            filename);
 
+        LOG(INFO) << "Saving the current state: " << filename << "'...";
 
-        // get stream here
-//        LOG(INFO) << "Using pbstream for debug '" ;
-//
-//        // For now, testing it for pbstream
-//        const std::string suffix = ".pbstream";
-//        CHECK_EQ(remote_address.substr(
-//                std::max<int>(remote_address.size() - suffix.size(), 0)),
-//                 suffix)
-//            << "The file containing the state to be loaded must be a "
-//               ".pbstream file.";
-//        LOG(INFO) << "Loading saved state '" << remote_address << "'...";
-//
         const std::string suffix = ".pbstream";
         CHECK_EQ(filename.substr(
                 std::max<int>(filename.size() - suffix.size(), 0)),
                  suffix)
-            << "The file containing the state to be loaded must be a "
-               ".pbstream file.";
-        LOG(INFO) << "Loading saved state '" << filename << "'...";
+            << "Error in saving and retrieving the file";
+
+        LOG(INFO) << "Loading saved state: " << filename << "'...";
         cartographer::io::ProtoStreamReader stream(filename);
 
-
-        map_builder_->SendStateRemote(&stream, load_frozen_state, remote_address);
-
+        check = map_builder_->SendStateRemote(&stream, load_frozen_state, remote_address) ;
+        if(check[0]==0)
+            return false;
         return true;
 
     }
