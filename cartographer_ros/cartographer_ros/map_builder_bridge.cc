@@ -111,6 +111,13 @@ MapBuilderBridge::MapBuilderBridge(
     bool MapBuilderBridge::SendStateToRemote(const std::string& remote_address,
                                              bool load_frozen_state) {
         std::map<int, int> check;
+        geometry_msgs::Pose initial_pose;
+
+        initial_pose.position.x = 20.0;
+        initial_pose.position.y = 20.0;
+        initial_pose.position.z = 0.1;
+
+        initial_pose.orientation.w = 1;
         LOG(INFO) << "Received SendState to Remote Address: " << remote_address ;
         bool include_unfinished_submaps = false;
         std::string filename = "autoremoteadd.pbstream";
@@ -127,8 +134,9 @@ MapBuilderBridge::MapBuilderBridge(
 
         LOG(INFO) << "Loading saved state: " << filename << "'...";
         cartographer::io::ProtoStreamReader stream(filename);
+        const auto pose = ToRigid3d(initial_pose);
 
-        check = map_builder_->SendStateRemote(&stream, load_frozen_state, remote_address) ;
+        check = map_builder_->SendStateRemote(&stream, load_frozen_state, remote_address, pose);
         if(check[0]==0)
             return false;
         return true;

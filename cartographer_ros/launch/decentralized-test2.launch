@@ -1,7 +1,7 @@
 <launch>
 <param name="/use_sim_time" value="true" />
 
-<arg name="bag_filename" default="/home/shreyas/Projects/ROS-Workspaces/ThesisRosWorkspace/testcartgrapher2part2.bag"/>
+<arg name="bag_filename" default="/media/shreyas/everguide_T5/OtherImpBags/testcartgrapher2part2.bag"/>
 <!-- Decentralized Configuration 2 -->
 <group>
     <env name="ROS_MASTER_URI" value="http://localhost:11511" />
