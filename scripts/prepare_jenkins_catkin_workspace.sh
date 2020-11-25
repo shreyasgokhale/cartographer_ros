@@ -20,8 +20,8 @@ set -o verbose
 . /opt/ros/${ROS_DISTRO}/setup.sh
 
 # Create a new workspace in 'catkin_ws'.
-mkdir -p catkin_ws/src
-cd catkin_ws/src
+mkdir -p catkin_ws/cartographer_build
+cd catkin_ws/cartographer_build
 wstool init
 
 # Merge the cartographer_ros.rosinstall file and fetch code for dependencies.

@@ -1,0 +1,67 @@
+<launch>
+<param name="/use_sim_time" value="true" />
+
+
+<!-- We want one grpc node which pushes to grpc server node  -->
+
+<group>
+ <!-- Quanergy -->
+    <env name="ROS_MASTER_URI" value="http://localhost:11311" />
+
+    <node name="playbag_1" pkg="rosbag" type="play"
+    args="-r 2 --clock /media/shreyas/mir_T5/shreyas-test-drives-velodyne/bags/26092019_Vr-no-mark1_e0/26092019_Vr-no-mark1_e0.bag"> 
+    <remap from="/velodyne_points" to="/points2_1" />
+    <remap from="/velodyne_points2" to="/points2_2" /> -->
+    <remap from="/core2/imu/data" to="/imu"/> 
+    </node>
+
+    <param name="robot_description"
+    textfile="$(find cartographer_ros)/urdf/mira_velodyne.urdf" />
+
+    <node name="robot_state_publisher1" pkg="robot_state_publisher"
+    type="robot_state_publisher" />
+
+    <!-- This is robot settings lua  -->
+    <node name="cartographer_grpc_bridge_1" pkg="cartographer_ros"
+      type="cartographer_grpc_node" args="
+            -configuration_directory $(find cartographer_ros)/configuration_files
+            -configuration_basename velodyne.lua 
+            -server_address 0.0.0.0:50051
+            -client_id 1"
+      output="screen">
+    </node>
+    <!-- This is robot server lua 
+    <node name="cartographer_grpc_server_1" pkg="cartographer_ros"
+      type="cartographer_grpc_server.sh" args="
+            -configuration_directory $(find cartographer_ros)/configuration_files
+            -configuration_basename velodyne_local_server.lua">
+        </node>
+    -->
+    <node name="rviz_1" pkg="rviz" type="rviz" required="true"
+        args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
+    </group>
+
+<group>
+    <env name="ROS_MASTER_URI" value="http://localhost:11111" />
+        <node name="cartographer_grpc_cloud" pkg="cartographer_ros"
+        type="cartographer_grpc_server.sh" args="
+            -configuration_directory $(find cartographer_ros)/configuration_files
+            -configuration_basename velodyne_local_server.lua">
+    </node>
+<!-- 
+    
+    <node name="cartographer_grpc_bridge_cloud" pkg="cartographer_ros"
+        type="cartographer_grpc_node" args="
+            -configuration_directory $(find cartographer_ros)/configuration_files
+            -configuration_basename quanergy.lua
+            -server_address 0.0.0.0:50051
+            -client_id 3"
+        output="screen">
+    </node>
+        <node name="rviz_3" pkg="rviz" type="rviz" required="true"
+        args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
+   
+-->
+</group>
+</launch>
+

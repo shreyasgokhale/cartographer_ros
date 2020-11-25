@@ -45,6 +45,9 @@ constexpr char kLandmarkPosesListTopic[] = "landmark_poses_list";
 constexpr char kConstraintListTopic[] = "constraint_list";
 constexpr double kConstraintPublishPeriodSec = 0.5;
 constexpr double kTopicMismatchCheckDelaySec = 3.0;
+constexpr char kSendStateRemote[] = "send_state_remote";
+
+
 
 constexpr int kInfiniteSubscriberQueueSize = 0;
 constexpr int kLatestOnlyPublisherQueueSize = 1;

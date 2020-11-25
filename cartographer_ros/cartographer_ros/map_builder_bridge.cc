@@ -105,19 +105,52 @@ MapBuilderBridge::MapBuilderBridge(
       map_builder_(std::move(map_builder)),
       tf_buffer_(tf_buffer) {}
 
-void MapBuilderBridge::LoadState(const std::string& state_filename,
-                                 bool load_frozen_state) {
-  // Check if suffix of the state file is ".pbstream".
-  const std::string suffix = ".pbstream";
-  CHECK_EQ(state_filename.substr(
-               std::max<int>(state_filename.size() - suffix.size(), 0)),
-           suffix)
-      << "The file containing the state to be loaded must be a "
-         ".pbstream file.";
-  LOG(INFO) << "Loading saved state '" << state_filename << "'...";
-  cartographer::io::ProtoStreamReader stream(state_filename);
-  map_builder_->LoadState(&stream, load_frozen_state);
-}
+
+    // Add state directly from remote gRPC address
+
+    bool MapBuilderBridge::SendStateToRemote(const std::string& remote_address,
+                                             bool load_frozen_state) {
+        std::map<int, int> check;
+        LOG(INFO) << "Received SendState to Remote Address: " << remote_address ;
+        bool include_unfinished_submaps = false;
+        std::string filename = "autoremoteadd.pbstream";
+        map_builder_->SerializeStateToFile(include_unfinished_submaps,
+                                           filename);
+
+        LOG(INFO) << "Saving the current state: " << filename << "'...";
+
+        const std::string suffix = ".pbstream";
+        CHECK_EQ(filename.substr(
+                std::max<int>(filename.size() - suffix.size(), 0)),
+                 suffix)
+            << "Error in saving and retrieving the file";
+
+        LOG(INFO) << "Loading saved state: " << filename << "'...";
+        cartographer::io::ProtoStreamReader stream(filename);
+
+        check = map_builder_->SendStateRemote(&stream, load_frozen_state, remote_address) ;
+        if(check[0]==0)
+            return false;
+        return true;
+
+    }
+
+
+    void MapBuilderBridge::LoadState(const std::string& state_filename,
+                                     bool load_frozen_state) {
+        // Check if suffix of the state file is ".pbstream".
+        const std::string suffix = ".pbstream";
+        CHECK_EQ(state_filename.substr(
+                std::max<int>(state_filename.size() - suffix.size(), 0)),
+                 suffix)
+            << "The file containing the state to be loaded must be a "
+               ".pbstream file.";
+        LOG(INFO) << "Loading saved state '" << state_filename << "'...";
+        cartographer::io::ProtoStreamReader stream(state_filename);
+        map_builder_->LoadState(&stream, load_frozen_state);
+    }
+
+
 
 int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>&

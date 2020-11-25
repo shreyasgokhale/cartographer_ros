@@ -42,6 +42,7 @@
 #include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
 #include "cartographer_ros_msgs/WriteState.h"
+#include "cartographer_ros_msgs/SendStateRemote.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
@@ -143,6 +144,8 @@ class Node {
       cartographer_ros_msgs::FinishTrajectory::Response& response);
   bool HandleWriteState(cartographer_ros_msgs::WriteState::Request& request,
                         cartographer_ros_msgs::WriteState::Response& response);
+  bool HandleSendStateRemote(cartographer_ros_msgs::SendStateRemote::Request &request,
+                             cartographer_ros_msgs::SendStateRemote::Response &response);
   bool HandleGetTrajectoryStates(
       ::cartographer_ros_msgs::GetTrajectoryStates::Request& request,
       ::cartographer_ros_msgs::GetTrajectoryStates::Response& response);
@@ -227,6 +230,8 @@ class Node {
   // simulation time is standing still. This prevents overflowing the transform
   // listener buffer by publishing the same transforms over and over again.
   ::ros::Timer publish_local_trajectory_data_timer_;
+
+    void LoadStateFromRemote(const std::string &remote_address, const bool load_frozen_state);
 };
 
 }  // namespace cartographer_ros
